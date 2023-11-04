@@ -1,3 +1,5 @@
+let serverPacketIntervalID = null;
+
 function clickHostServer() {
     if (!UI_UserNameInput()) {
         return false;
@@ -15,6 +17,7 @@ function clickHostServer() {
     netSetUserName(UI_UserNameInput());
     netStartServer();
     netServerOnClientConnect(clientConnectedToServer);
+    netServerOnClientDisconnect(clientConnectedToServer); //FIXME D:
 
     return true;
 }
@@ -31,6 +34,18 @@ function UI_updateServerID() {
     document.querySelector("#server_room_id").innerText = peer.id;
 }
 
+function UI_refreshUsersList() {
+    let usersLists = netGetUsersList();
+    let lobbyStr = "";
+    usersLists.forEach(user => {
+        if (user.server) {
+            lobbyStr += "[HOST] ";
+        }
+        lobbyStr += user.name + "<br />";
+    });
+    document.querySelector("#room_lobby").innerHTML = lobbyStr;
+}
+
 function copyServerID() {
     navigator.clipboard.writeText(peer.id);
 }
@@ -43,20 +58,35 @@ function clickConnect() {
 
     clientConn.on('open', function() {
         goToLobby();
+        netClientOnDataReceived(clientProcessServerEvent);
     });
 }
 
+function clientProcessServerEvent(eventData) {
+    if (!eventData.event) {
+        return;
+    }
+    switch(eventData.event) {
+        case "USERS_LIST":
+            netSetUsersList(eventData.data);
+            UI_refreshUsersList();
+        break;
+    }
+}
+
 function clientConnectedToServer() {
+    UI_refreshUsersList();
     goToLobby();
-    let usersLists = netGetUsersList();
-    let lobbyStr = "";
-    usersLists.forEach(user => {
-        if (user.server) {
-            lobbyStr += "[HOST] ";
+
+    if (netIsUserServer()) {
+        if (serverPacketIntervalID) {
+            clearInterval(serverPacketIntervalID);
+            serverPacketIntervalID = null;
         }
-        lobbyStr += user.name + "<br />";
-    });
-    document.querySelector("#room_lobby").innerHTML = lobbyStr;
+        serverPacketIntervalID = setInterval(() => {
+            serverSendUserList();
+        }, 2000);
+    }
 }
 
 function goToLobby() {
@@ -86,6 +116,7 @@ function clickQuitToMainMenu() {
     document.querySelector("#ui_wait_clients").classList.add("hidden");
     document.querySelector("#ui_join_server").classList.add("hidden");
     document.querySelector("#ui_lobby").classList.add("hidden");
+    
 
     netKillServer();
 }

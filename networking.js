@@ -1,65 +1,75 @@
-let peer = new Peer();
-let conn = null;
+let peer = null;
 let reconnectIntervalID = null;
 let netUserData = {
     server: false,
-    name: "Sin Nombre"
+    name: "Sin Nombre",
+    conn: null
 };
 let netUsersList = [];
 let netUserOnConnectCallback=null;
+let netUserReceiveDataCallback=null;
+let netUserOnDisconnectCallback = null;
 
-peer.on('open', function(id) {
-    document.querySelector("#peer_id").innerText = id;
-    console.log("My peer ID is: " + id);
-});
+function initPeer() {
+    peer = new Peer();
+    peer.on('open', function(id) {
+        document.querySelector("#peer_id").innerText = id;
+        console.log("My peer ID is: " + id);
+    });
 
-peer.on('connection', function(remoteConn) {
+    peer.on('connection', function(remoteConn) {
 
-    if (reconnectIntervalID) {
-        clearInterval(reconnectIntervalID);
-        reconnectIntervalID = null;
-    }
-    if (netIsUserServer()) {
-        netAddClient(remoteConn);
-    }
-    initConn(remoteConn);
-});
+        if (reconnectIntervalID) {
+            clearInterval(reconnectIntervalID);
+            reconnectIntervalID = null;
+        }
+        if (netIsUserServer()) {
+            netAddClient(remoteConn);
+        }
+        initConn(remoteConn);
+    });
 
-peer.on('call', function(mediaConn) {
-    updateConnStatusMsg("CALL", "Remote Peer: " + conn.peer);
-});
+    peer.on('call', function(mediaConn) {
+        updateConnStatusMsg("CALL", "Remote Peer: " + conn.peer);
+    });
 
-peer.on('disconnected', function() {
-    updateConnStatusMsg("DISCONNECTED", "");
-    if (!reconnectIntervalID) {
-        reconnectIntervalID = setInterval(() => {
-            updateConnStatusMsg("RECONNECTING", "");
-            peer.reconnect();
-        }, 1000);
-    }
-});
+    peer.on('disconnected', function() {
+        updateConnStatusMsg("DISCONNECTED", "");
+        if (!reconnectIntervalID) {
+            reconnectIntervalID = setInterval(() => {
+                updateConnStatusMsg("RECONNECTING", "");
+                peer.reconnect();
+            }, 1000);
+        }
+    });
 
-peer.on('error', function(err) {
-    updateConnStatusMsg("ERROR", err.type);
-});
+    peer.on('error', function(err) {
+        updateConnStatusMsg("ERROR", err.type);
+    });
+}
 
-function initConn(connToSet) {
-    conn = connToSet;
+function initConn(conn) {
     conn.on('open', function() {
         conn.on('data', function(data) {
             updateDataReceived(data);
+            if (netUserReceiveDataCallback) {
+                netUserReceiveDataCallback(data);
+            }
+            //console.log("Received: ", data);
         });
         conn.on('close', function() {
             updateConnStatusMsg("CONN CLOSED", "Remote Peer: " + conn.peer);
+            removeClient(conn);
         });
         if (netIsUserServer() && netUserOnConnectCallback) {
             netUserOnConnectCallback();
         }
+        conn.on('error', function(err) {
+            updateConnStatusMsg("CONN ERROR", err);
+            removeClient(conn);
+        });
 
         updateConnStatusMsg("CONNECTED", "Remote Peer: " + conn.peer);
-    });
-    conn.on('error', function(err) {
-        updateConnStatusMsg("CONN ERROR", err);
     });
 }
 
@@ -69,14 +79,28 @@ function netStartServer() {
     netUsersList.push(netUserData); //Add HOST always as first client.
 }
 
+function removeClient(clientConn) {
+    if (!netIsUserServer()) {  //SERVER-SIDE ONLY
+        return false;
+    }
+    netUsersList = netUsersList.filter(netUser => netUser.name !== clientConn.label);
+    netUserOnDisconnectCallback();
+    return true;
+}
+
 function netAddClient(clientConn) {
+    if (!netIsUserServer()) {  //SERVER-SIDE ONLY
+        return false;
+    }
     if (netClientExists(clientConn)) {
         return false;
     }
     netUsersList.push({
         server: false,
-        name: clientConn.label
+        name: clientConn.label,
+        conn: clientConn
     });
+
     updateConnStatusMsg("ADD CLIENT", netUsersList[netUsersList.length-1].name);
     return true;
 }
@@ -88,6 +112,29 @@ function netClientExists(clientConn) {
         }
     }
     return false;
+}
+
+function serverSendUserList() {
+    return serverSendNetEvent("USERS_LIST", netUsersList.map(({conn, ...keepAttrs}) => keepAttrs));
+}
+
+function serverSendNetEvent(event_name, event_data) {
+    if (!netIsUserServer()) { //SERVER-SIDE ONLY
+        return false;
+    }
+    //Maybe I should store ALL clients Connection Data.
+    netUsersList.forEach(netUser => {
+        console.log(netUser);
+        if (netUser.conn) {
+            netUser.conn.send({
+                event: event_name,
+                data: event_data
+            });
+        }
+    });
+
+
+    return true;
 }
 
 function netSetUserServer() {
@@ -106,15 +153,29 @@ function netSetUserName(newUserName) {
     netUserData.name = newUserName;
 }
 function netKillServer() {
+    peer.destroy();
     netSetUserClient();
+    initPeer();
 }
 
 function netGetUsersList() {
     return netUsersList;
 }
 
+function netSetUsersList(newUsersList) {
+    netUsersList = newUsersList;
+}
+
 function netServerOnClientConnect(callback) {
     netUserOnConnectCallback = callback;
+}
+
+function netClientOnDataReceived(callback) {
+    netUserReceiveDataCallback = callback;
+}
+
+function netServerOnClientDisconnect(callback) {
+    netUserOnDisconnectCallback = callback;
 }
 
 //DEBUG ONLY
@@ -137,3 +198,6 @@ function updateDataReceived(data) {
 function updateConnStatusMsg(status, message) {
     document.querySelector("#conn_status").innerText = "[" + status + "]: " + message;
 }
+
+
+initPeer();
