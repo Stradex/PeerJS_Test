@@ -4,6 +4,8 @@ function clickHostServer() {
     if (!UI_UserNameInput()) {
         return false;
     }
+    
+    document.querySelector("#ui_game").classList.add("hidden");
     document.querySelector("#ui_main_menu").classList.add("hidden");
     document.querySelector("#ui_wait_clients").classList.remove("hidden");
     document.querySelector("#ui_join_server").classList.add("hidden");
@@ -44,6 +46,7 @@ function UI_refreshUsersList() {
         lobbyStr += user.name + "<br />";
     });
     document.querySelector("#room_lobby").innerHTML = lobbyStr;
+    document.querySelector("#game_users_list").innerHTML = lobbyStr;
 }
 
 function copyServerID() {
@@ -71,6 +74,9 @@ function clientProcessServerEvent(eventData) {
             netSetUsersList(eventData.data);
             UI_refreshUsersList();
         break;
+        case "START_GAME":
+            startGame();
+        break;
     }
 }
 
@@ -90,6 +96,7 @@ function clientConnectedToServer() {
 }
 
 function goToLobby() {
+    document.querySelector("#ui_game").classList.add("hidden");
     document.querySelector("#ui_main_menu").classList.add("hidden");
     document.querySelector("#ui_wait_clients").classList.add("hidden");
     document.querySelector("#ui_join_server").classList.add("hidden");
@@ -105,6 +112,7 @@ function clickJoinServer() {
     document.querySelector("#ui_wait_clients").classList.add("hidden");
     document.querySelector("#ui_join_server").classList.remove("hidden");
     document.querySelector("#ui_lobby").classList.add("hidden");
+    document.querySelector("#ui_game").classList.add("hidden");
     netSetUserName(UI_UserNameInput());
     netSetUserClient();
 
@@ -116,7 +124,24 @@ function clickQuitToMainMenu() {
     document.querySelector("#ui_wait_clients").classList.add("hidden");
     document.querySelector("#ui_join_server").classList.add("hidden");
     document.querySelector("#ui_lobby").classList.add("hidden");
-    
+    document.querySelector("#ui_game").classList.add("hidden");
 
     netKillServer();
+}
+
+function serverStartGame() {
+    if (!netIsUserServer()) {
+        return;
+    }
+
+    serverSendStartGame();
+    startGame();
+}
+
+function startGame() {
+    document.querySelector("#ui_main_menu").classList.add("hidden");
+    document.querySelector("#ui_wait_clients").classList.add("hidden");
+    document.querySelector("#ui_join_server").classList.add("hidden");
+    document.querySelector("#ui_lobby").classList.add("hidden");
+    document.querySelector("#ui_game").classList.remove("hidden");
 }

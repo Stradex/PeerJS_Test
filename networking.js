@@ -1,9 +1,11 @@
 let peer = null;
 let reconnectIntervalID = null;
+const STARTING_MONEY=1000;
 let netUserData = {
     server: false,
     name: "Sin Nombre",
-    conn: null
+    conn: null,
+    money: STARTING_MONEY
 };
 let netUsersList = [];
 let netUserOnConnectCallback=null;
@@ -98,7 +100,8 @@ function netAddClient(clientConn) {
     netUsersList.push({
         server: false,
         name: clientConn.label,
-        conn: clientConn
+        conn: clientConn,
+        money: STARTING_MONEY
     });
 
     updateConnStatusMsg("ADD CLIENT", netUsersList[netUsersList.length-1].name);
@@ -117,6 +120,9 @@ function netClientExists(clientConn) {
 function serverSendUserList() {
     return serverSendNetEvent("USERS_LIST", netUsersList.map(({conn, ...keepAttrs}) => keepAttrs));
 }
+function serverSendStartGame() {
+    return serverSendNetEvent("START_GAME", null);
+}
 
 function serverSendNetEvent(event_name, event_data) {
     if (!netIsUserServer()) { //SERVER-SIDE ONLY
@@ -132,7 +138,6 @@ function serverSendNetEvent(event_name, event_data) {
             });
         }
     });
-
 
     return true;
 }

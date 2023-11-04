@@ -9,6 +9,35 @@
         <script src="index.js"></script>
     </head>
     <body>
+        <div id="ui_game" class="w-full hidden">
+            <div class="w-full">
+                <div class="flex flex-col font-sans rounded-lg bg-slate-200 justify-center">
+                <div class="flex flex-row m-5 p-5 font-sans space-x-5 rounded-lg bg-slate-200 justify-center">
+                    <div class="bg-slate-300 rounded-lg p-5" style="max-width: 500px;">
+                        <h2 class="font-bold text-lg text-center">Crash de Bitcoin</h2>
+                        <div class="p-5 justify-center text-center">
+                            <img class="mx-auto block" src="https://digitalnod.co/wp-content/uploads/2022/05/976x664_Bitcoin-and-the-Crypto-Market-Crash.png"  />
+                        </div>
+                        <p class="text-center">Además de seguir a bitcoin en su caída, hay varias razones que impulsan a las altcoins a la baja en sus cotizaciones.</p>
+                    </div>
+                    <div class="bg-slate-400 rounded-lg p-5" style="max-width: 500px;">
+                        <h2 class="font-bold text-lg text-center">Usuarios</h2>
+                        <p id="game_users_list">...</p>
+                    </div>
+      
+                </div>
+                <div class="flex w-full justify-center space-x-5 p-5">
+                    <button class="h-10 px-6 font-semibold rounded-md bg-black hover:bg-white text-white hover:text-black" type="button">
+                        Comprar
+                      </button>
+                      <button class="h-10 px-6 font-semibold rounded-md bg-black hover:bg-white text-white hover:text-black" type="button">
+                        Vender
+                      </button>
+                    </div>
+            </div>
+
+            </div>
+        </div>
         <div id="ui_lobby" class="w-full hidden ">
             <div class="flex flex-col m-5 p-5 font-sans space-y-5 rounded-lg bg-slate-200">
                 <h2 class="font-bold text-xl text-center">Lobby</h2>
@@ -17,7 +46,7 @@
                 <button class="h-10 px-6 font-semibold rounded-md bg-black hover:bg-white text-white hover:text-black" type="button" onclick="clickQuitToMainMenu()">
                     Salir
                   </button>
-                  <button id="btn_start_game" class="h-10 px-6 font-semibold rounded-md bg-black hover:bg-white text-white hover:text-black" type="button">
+                  <button id="btn_start_game" class="h-10 px-6 font-semibold rounded-md bg-black hover:bg-white text-white hover:text-black" onclick="serverStartGame()" type="button">
                     Empezar Partida
                   </button>
                 </div>
